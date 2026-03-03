@@ -1,3 +1,4 @@
+#!/bin/bash
 docker build -t systray-build .
 docker run -it --rm -v "$(pwd)":/workspace:rw -u "$(id -u):$(id -g)" systray-build /bin/bash -c \ """
     cd /workspace && \
