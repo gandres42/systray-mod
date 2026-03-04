@@ -6,7 +6,7 @@ docker run -it --rm -v "$(pwd)":/workspace:rw -u "$(id -u):$(id -g)" systray-bui
     mkdir -p plasma-workspace/build && \
     cd plasma-workspace/build && \
     cmake .. && \
-    make -j$(nproc) && \
+    make -j$(nproc) org.kde.plasma.systemtray systemtrayplugin && \
     cd ../.. && \
     cp plasma-workspace/build/bin/plasma/applets/org.kde.plasma.systemtray.so ./
 """
