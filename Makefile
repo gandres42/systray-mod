@@ -1,11 +1,13 @@
-# Native build (no container). Run on an openSUSE Tumbleweed host with KDE Plasma.
+# Native build (no container). Run on an openSUSE Leap 16 host with KDE Plasma 6.
+# If your source repo alias differs, override it: make deps SRC_REPO=<alias>
+# (see `zypper lr`; default is the Leap source repo, openSUSE:repo-oss-source).
 # Usage:
 #   sudo make deps     # install build dependencies (once)
 #        make build    # clone plasma-workspace at your version, patch + build the applet
 #   sudo make install  # back up and install the built .so
 
 PLASMA_VERSION := $(shell rpm -q --qf '%{VERSION}' plasma6-workspace 2>/dev/null)
-SRC_REPO      := repo-source
+SRC_REPO      ?= openSUSE:repo-oss-source
 SO_INSTALL    := /usr/lib64/qt6/plugins/plasma/applets/org.kde.plasma.systemtray.so
 SO_BUILD      := plasma-workspace/build/bin/plasma/applets/org.kde.plasma.systemtray.so
 MAIN_QML      := plasma-workspace/applets/systemtray/qml/main.qml
