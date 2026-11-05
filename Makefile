@@ -1,16 +1,16 @@
-# Native build (no container). Run on a Fedora host with KDE Plasma.
+# Native build (no container). Run on an openSUSE Tumbleweed host with KDE Plasma.
 # Usage:
-#   sudo make -f Makefile.native deps     # install build dependencies (once)
-#        make -f Makefile.native setup     # clone plasma-workspace at your version
-#        make -f Makefile.native build     # patch + build the applet natively
-#   sudo make -f Makefile.native install   # back up and install the built .so
+#   sudo make deps     # install build dependencies (once)
+#        make build    # clone plasma-workspace at your version, patch + build the applet
+#   sudo make install  # back up and install the built .so
 
-PLASMA_VERSION := $(shell dnf list --installed 2>/dev/null | grep plasma-workspace | head -1 | awk '{print $$2}' | cut -d'-' -f1)
+PLASMA_VERSION := $(shell rpm -q --qf '%{VERSION}' plasma6-workspace 2>/dev/null)
+SRC_REPO      := repo-source
 SO_INSTALL    := /usr/lib64/qt6/plugins/plasma/applets/org.kde.plasma.systemtray.so
 SO_BUILD      := plasma-workspace/build/bin/plasma/applets/org.kde.plasma.systemtray.so
 MAIN_QML      := plasma-workspace/applets/systemtray/qml/main.qml
 
-.PHONY: deps setup build install clean
+.PHONY: deps build install clean
 
 build:
 	rm -rf plasma-workspace
@@ -19,21 +19,29 @@ build:
 	sed -i 's/readonly property int smallIconSize: Kirigami\.Units\.iconSizes\.smallMedium/readonly property int smallIconSize: Kirigami.Units.iconSizes.small/' "$(MAIN_QML)"
 	mkdir -p plasma-workspace/build 
 	cd plasma-workspace/build && \
-		cmake .. && \
+		cmake -DBUILD_TESTING=OFF .. && \
 		make -j$$(nproc) org.kde.plasma.systemtray systemtrayplugin
 	cp $(SO_BUILD) ./
 
 deps:
 	@if [ "$$(id -u)" -ne 0 ]; then \
-		echo "This target must be run as root (use: sudo make -f Makefile.native deps)"; \
+		echo "This target must be run as root (use: sudo make deps)"; \
 		exit 1; \
 	fi
-	dnf builddep -y plasma-workspace-devel
-	ln -sf /usr/libexec /usr/lib64/libexec
+	zypper -n in git cmake gcc-c++
+	@# zypper source-install needs the source repo; enable it only for this step
+	@if zypper -x lr $(SRC_REPO) | grep -q 'enabled="1"'; then \
+		zypper -n --gpg-auto-import-keys si -d plasma6-workspace; \
+	else \
+		zypper mr -e $(SRC_REPO) && \
+		zypper -n --gpg-auto-import-keys ref $(SRC_REPO) && \
+		zypper -n --gpg-auto-import-keys si -d plasma6-workspace; \
+		ret=$$?; zypper mr -d $(SRC_REPO); exit $$ret; \
+	fi
 
 install:
 	@if [ "$$(id -u)" -ne 0 ]; then \
-		echo "This target must be run as root (use: sudo make -f Makefile.native install)"; \
+		echo "This target must be run as root (use: sudo make install)"; \
 		exit 1; \
 	fi
 	cp $(SO_INSTALL) ./org.kde.plasma.systemtray.so.bak
